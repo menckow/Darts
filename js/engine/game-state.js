@@ -52,13 +52,17 @@ export class GameEngine {
   }
 
   createPlayer(p) {
+    const handicap = parseInt(p.handicap, 10) || 0;
+    const initialScore = Math.max(2, this.startScore - handicap);
     return {
       id: p.id || 'p_' + Math.random().toString(36).substring(2, 9),
       name: p.name || 'Spieler',
       isBot: !!p.isBot,
       botAverage: p.botAverage || 60,
       color: p.color || '#00e5ff',
-      currentScore: this.startScore,
+      handicap: handicap,
+      startScore: initialScore,
+      currentScore: initialScore,
       legsWon: 0,
       setsWon: 0,
       hasStartedIn: this.inRule === 'STRAIGHT', // Für Double-In / Master-In
@@ -417,7 +421,8 @@ export class GameEngine {
       players: this.players.map(p => {
         const legTurns = this.currentLegTurns.filter(t => t.playerId === p.id);
         const legDarts = legTurns.reduce((acc, t) => acc + (t.darts && t.darts.length > 0 ? t.darts.length : 3), 0);
-        const legScore = (p.id === player.id) ? this.startScore : (this.startScore - p.currentScore);
+        const pStart = p.startScore || this.startScore;
+        const legScore = (p.id === player.id) ? pStart : (pStart - p.currentScore);
 
         let f9Darts = 0;
         let f9Score = 0;
@@ -506,7 +511,7 @@ export class GameEngine {
     this.currentPlayerIndex = this.legStarterIndex;
 
     this.players.forEach(p => {
-      p.currentScore = this.startScore;
+      p.currentScore = p.startScore || this.startScore;
       p.currentLegDarts = 0;
       p.hasStartedIn = this.inRule === 'STRAIGHT';
     });
@@ -590,7 +595,8 @@ export class GameEngine {
       players: this.players.map(p => {
         const legTurns = this.currentLegTurns.filter(t => t.playerId === p.id);
         const legDarts = p.currentLegDarts || legTurns.reduce((acc, t) => acc + (t.darts && t.darts.length > 0 ? t.darts.length : 3), 0);
-        const legScore = this.startScore - p.currentScore;
+        const pStart = p.startScore || this.startScore;
+        const legScore = pStart - p.currentScore;
 
         let f9Darts = 0;
         let f9Score = 0;

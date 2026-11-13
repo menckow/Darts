@@ -724,6 +724,7 @@ class DartsApp {
             <span class="player-name">${player.name}</span>
           </div>
           <div class="player-score-badges">
+            ${player.handicap ? `<span class="badge" style="background: rgba(255,255,255,0.12); font-size: 0.72rem; padding: 2px 6px; border-radius: 4px;" title="Handikap: ${player.handicap > 0 ? '+' : ''}${player.handicap} Punkte">HC: ${player.handicap > 0 ? '+' : ''}${player.handicap}</span>` : ''}
             ${player.legsWon ? `<span class="badge leg-badge">Legs: ${player.legsWon}</span>` : ''}
           </div>
         </div>
@@ -974,13 +975,15 @@ class DartsApp {
       const botAverage = botAvgSelect ? parseInt(botAvgSelect.value, 10) : 60;
       const color = colorInput ? colorInput.value : (idx === 0 ? '#00e5ff' : '#ff2a70');
       const profileId = (selectProfile && selectProfile.value) ? selectProfile.value : ('p_' + idx);
+      const handicap = parseInt(row.dataset.handicap || '0', 10) || 0;
 
       players.push({
         id: profileId,
         name: nameInput.value.trim() || `Spieler ${idx + 1}`,
         isBot,
         botAverage,
-        color
+        color,
+        handicap
       });
     });
 
@@ -1015,9 +1018,13 @@ class DartsApp {
     if (sel) {
       sel.addEventListener('change', async () => {
         const pId = sel.value;
-        if (!pId) return;
+        if (!pId) {
+          row.dataset.handicap = '0';
+          return;
+        }
         const profile = await db.getPlayerById(pId);
         if (profile) {
+          row.dataset.handicap = profile.handicap || 0;
           if (nameInput) nameInput.value = profile.name;
           if (colorInput) colorInput.value = profile.color || '#00e5ff';
           if (isBotCheckbox) isBotCheckbox.checked = !!profile.isBot;

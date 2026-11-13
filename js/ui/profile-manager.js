@@ -234,7 +234,7 @@ export class ProfileManager {
       this.profiles.filter(p => !p.isBot).forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.id;
-        opt.textContent = `${p.avatar} ${p.name}`;
+        opt.textContent = `${p.avatar} ${p.name}${p.handicap ? ` (HC: ${p.handicap > 0 ? '+' : ''}${p.handicap})` : ''}`;
         if (opt.value === currentVal) opt.selected = true;
         humansGroup.appendChild(opt);
       });
@@ -246,7 +246,7 @@ export class ProfileManager {
       this.profiles.filter(p => p.isBot).forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.id;
-        opt.textContent = `${p.avatar} ${p.name}`;
+        opt.textContent = `${p.avatar} ${p.name}${p.handicap ? ` (HC: ${p.handicap > 0 ? '+' : ''}${p.handicap})` : ''}`;
         if (opt.value === currentVal) opt.selected = true;
         botsGroup.appendChild(opt);
       });
