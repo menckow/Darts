@@ -9,6 +9,8 @@
  * - Turn-by-Turn Leg Scorecard Tabelle
  */
 
+import { decomposeSumToDarts } from '../engine/darts-math.js';
+
 export class ScoliaDashboard {
   constructor() {
     this.container = null;
@@ -369,15 +371,47 @@ export class ScoliaDashboard {
     const p1 = legData.players?.[0] || { name: 'Spieler 1', color: '#00f0ff', scoringBuckets: {} };
     const p2 = legData.players?.[1] || { name: 'Spieler 2', color: '#ff2a70', scoringBuckets: {} };
 
-    const p1Avg = (p1.average || 0).toFixed(1);
-    const p2Avg = (p2.average || 0).toFixed(1);
+    // Pfeilanzahl und Average exakt ermitteln (inklusive Summen-Eingaben und Legacy-Daten)
+    const legTurns = legData.turns || [];
+    const p1Turns = legTurns.filter(t => t.playerId === p1.id);
+    const p2Turns = legTurns.filter(t => t.playerId === p2.id);
+
+    const calcDarts = (player, pTurns) => {
+      const minFromTurns = pTurns.reduce((acc, t) => {
+        if (t.dartsThrown) return acc + t.dartsThrown;
+        if (t.darts && t.darts.length > 1) return acc + t.darts.length;
+        // Falls Summen-Eingabe mit 1 Pseudo-Dart vorliegt
+        return acc + 3;
+      }, 0);
+      return Math.max(player.dartsCount || 0, minFromTurns);
+    };
+
+    const p1Darts = calcDarts(p1, p1Turns);
+    const p2Darts = calcDarts(p2, p2Turns);
+
+    const calcAvg = (player, dartsCount, pTurns) => {
+      if (dartsCount <= 0) return 0;
+      if (player.average && player.average > 0 && Math.abs(player.average - 300) > 1) {
+        return player.average;
+      }
+      if (player.scoreScored !== undefined && player.scoreScored > 0) {
+        return (player.scoreScored / dartsCount) * 3;
+      }
+      const sumPoints = pTurns.filter(t => !t.bust).reduce((acc, t) => acc + (t.sum || 0), 0);
+      return (sumPoints / dartsCount) * 3;
+    };
+
+    const p1Avg = calcAvg(p1, p1Darts, p1Turns).toFixed(1);
+    const p2Avg = calcAvg(p2, p2Darts, p2Turns).toFixed(1);
     const p1F9 = (p1.first9Average || 0).toFixed(1);
     const p2F9 = (p2.first9Average || 0).toFixed(1);
 
     const p1Co = p1.doubleAttempts > 0 ? `${(p1.checkoutPct || 0).toFixed(1)}% (${p1.doubleHits}/${p1.doubleAttempts})` : (p1.doubleHits > 0 ? '100% (1/1)' : '-');
     const p2Co = p2.doubleAttempts > 0 ? `${(p2.checkoutPct || 0).toFixed(1)}% (${p2.doubleHits}/${p2.doubleAttempts})` : (p2.doubleHits > 0 ? '100% (1/1)' : '-');
 
-    const winnerName = legData.winnerName || (legData.winnerId ? legData.players?.find(p => p.id === legData.winnerId)?.name : null);
+    const winnerPlayer = legData.players?.find(p => p.id === legData.winnerId);
+    const winnerName = legData.winnerName || winnerPlayer?.name;
+    const winningDarts = legData.winningDarts || legData.winnerDarts || (legData.winnerId === p1.id ? p1Darts : (legData.winnerId === p2.id ? p2Darts : (winnerPlayer ? calcDarts(winnerPlayer, legTurns.filter(t => t.playerId === winnerPlayer.id)) : p1Darts)));
 
     return `
       <!-- Leg Header Info Banner -->
@@ -388,7 +422,7 @@ export class ScoliaDashboard {
           </span>
           ${winnerName ? `
             <span class="scolia-leg-winner-tag">
-              🏆 Gewinner: <strong>${winnerName}</strong> in <strong>${legData.winningDarts || legData.winnerDarts || p1.dartsCount}</strong> Darts
+              🏆 Gewinner: <strong>${winnerName}</strong> in <strong>${winningDarts}</strong> Darts
               ${legData.winningDart ? `(Doppel: ${legData.winningDart})` : ''}
               ${legData.highFinish ? `• Finish: ${legData.highFinish}` : ''}
             </span>
@@ -403,7 +437,7 @@ export class ScoliaDashboard {
         <div class="scolia-player-box p1 ${legData.winnerId === p1.id ? 'is-leg-winner' : ''}" style="border-top-color: ${p1.color}">
           <div class="scolia-pbox-header">
             <span class="scolia-pbox-name">${p1.name}</span>
-            <span class="scolia-pbox-legs">${p1.dartsCount || 0} Darts</span>
+            <span class="scolia-pbox-legs">${p1Darts} Darts</span>
           </div>
           <div class="scolia-pbox-big-avg">${p1Avg}</div>
           <div class="scolia-pbox-label">Leg 3-Dart Average</div>
@@ -416,7 +450,7 @@ export class ScoliaDashboard {
         <div class="scolia-player-box p2 ${legData.winnerId === p2.id ? 'is-leg-winner' : ''}" style="border-top-color: ${p2.color}">
           <div class="scolia-pbox-header">
             <span class="scolia-pbox-name">${p2.name}</span>
-            <span class="scolia-pbox-legs">${p2.dartsCount || 0} Darts</span>
+            <span class="scolia-pbox-legs">${p2Darts} Darts</span>
           </div>
           <div class="scolia-pbox-big-avg">${p2Avg}</div>
           <div class="scolia-pbox-label">Leg 3-Dart Average</div>
@@ -430,7 +464,7 @@ export class ScoliaDashboard {
           ${this.renderMetricRow('3-Dart Average', p1Avg, p2Avg, parseFloat(p1Avg) >= parseFloat(p2Avg), parseFloat(p2Avg) >= parseFloat(p1Avg))}
           ${this.renderMetricRow('First 9 Average', p1F9, p2F9, parseFloat(p1F9) >= parseFloat(p2F9), parseFloat(p2F9) >= parseFloat(p1F9))}
           ${this.renderMetricRow('Checkouts / Doppel', p1Co, p2Co, (p1.checkoutPct || 0) >= (p2.checkoutPct || 0), (p2.checkoutPct || 0) >= (p1.checkoutPct || 0))}
-          ${this.renderMetricRow('Geworfene Darts', p1.dartsCount || 0, p2.dartsCount || 0, false, false)}
+          ${this.renderMetricRow('Geworfene Darts', p1Darts, p2Darts, false, false)}
           ${this.renderMetricRow('Höchste Aufnahme', p1.highestTurn || 0, p2.highestTurn || 0, (p1.highestTurn || 0) >= (p2.highestTurn || 0), (p2.highestTurn || 0) >= (p1.highestTurn || 0))}
         </div>
       </div>
@@ -484,7 +518,12 @@ export class ScoliaDashboard {
             </thead>
             <tbody>
               ${turns.map((turn, idx) => {
-                const darts = turn.darts || [];
+                let darts = turn.darts || [];
+                const expectedDartsCount = turn.dartsThrown || (turn.checkout ? (darts.length || 3) : 3);
+                if (darts.length < expectedDartsCount && turn.sum > 0) {
+                  darts = decomposeSumToDarts(turn.sum, expectedDartsCount, turn.checkout);
+                }
+
                 const d1 = darts[0] ? (darts[0].label || `${darts[0].score}`) : '-';
                 const d2 = darts[1] ? (darts[1].label || `${darts[1].score}`) : '-';
                 const d3 = darts[2] ? (darts[2].label || `${darts[2].score}`) : '-';

@@ -93,7 +93,7 @@ class DartsApp {
       inputMode: 'DARTS',
       players: [
         { id: 'p1', name: 'Spieler 1', isBot: false, color: '#00e5ff' },
-        { id: 'p2', name: 'DartBot (Avg 60)', isBot: true, botAverage: 60, color: '#ff2a70' }
+        { id: 'p2', name: 'DartBot (Avg 65)', isBot: true, botAverage: 65, color: '#ff2a70' }
       ]
     }, savedConfig, config);
 
@@ -1025,6 +1025,12 @@ class DartsApp {
     const botAvgSelect = row.querySelector('.player-bot-avg');
     const colorInput = row.querySelector('.player-color-input');
 
+    if (isBotCheckbox && botAvgSelect) {
+      isBotCheckbox.addEventListener('change', () => {
+        botAvgSelect.disabled = !isBotCheckbox.checked;
+      });
+    }
+
     if (sel) {
       sel.addEventListener('change', async () => {
         const pId = sel.value;
@@ -1041,8 +1047,8 @@ class DartsApp {
           if (botAvgSelect) {
             botAvgSelect.disabled = !profile.isBot;
             if (profile.isBot) {
-              const diffMap = { beginner: 35, amateur: 50, pro: 80, master: 95 };
-              botAvgSelect.value = diffMap[profile.botDifficulty] || 65;
+              const diffMap = { beginner: 35, amateur: 50, club: 65, pro: 80, master: 95 };
+              botAvgSelect.value = diffMap[profile.botDifficulty] || (profile.botAverage || 65);
             }
           }
         }
@@ -1050,7 +1056,7 @@ class DartsApp {
     }
   }
 
-  addSetupPlayerRow(name = '', isBot = false, avg = 60) {
+  addSetupPlayerRow(name = '', isBot = false, avg = 65) {
     const container = document.getElementById('setup-players-container');
     if (!container) return;
     const rowIdx = container.children.length + 1;
@@ -1080,11 +1086,7 @@ class DartsApp {
       <button type="button" class="btn-remove-player btn-danger">✕</button>
     `;
 
-    const botToggle = row.querySelector('.player-bot-toggle');
-    const botAvg = row.querySelector('.player-bot-avg');
-    botToggle.addEventListener('change', () => {
-      botAvg.disabled = !botToggle.checked;
-    });
+    this.bindSetupRowSelect(row);
 
     row.querySelector('.btn-remove-player').addEventListener('click', () => {
       if (container.children.length <= 1) {
@@ -1093,6 +1095,13 @@ class DartsApp {
       }
       row.remove();
     });
+
+    container.appendChild(row);
+
+    if (this.profileManager) {
+      this.profileManager.populateSetupSelectors();
+    }
+  }
 
     this.bindSetupRowSelect(row);
     container.appendChild(row);

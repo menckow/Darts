@@ -438,50 +438,52 @@ export function simulateBotThrow(currentScore, dartsLeftInTurn, botAverage = 60,
     target = 'T20';
   }
 
-  // Treffergenauigkeit basierend auf botAverage berechnen
-  // Average 30: ~15% Triple, viel Streuung
-  // Average 60: ~35% Triple, 30% Single Nachbar
-  // Average 90: ~60% Triple, hohe Doppelquote
-  const avgFactor = Math.min(Math.max((botAverage - 20) / 90, 0.1), 0.98);
+  // Treffergenauigkeit exakt kalibriert auf Ziel-Average:
+  // 35 -> ~34-35 Avg (Anfänger)
+  // 50 -> ~50 Avg (Hobbyspieler)
+  // 65 -> ~65-66 Avg (Vereinsspieler)
+  // 80 -> ~80 Avg (Halbprofi)
+  // 95 -> ~95-97 Avg (PDC Pro)
+  const s = Math.min(Math.max((botAverage - 28) / 67, 0), 1.2);
   const rand = Math.random();
 
   const parsedTarget = parseSegment(target);
 
   if (parsedTarget.isDouble) {
-    // Doppel-Versuch
-    const hitRate = 0.15 + avgFactor * 0.45; // 19% bis 59%
-    if (rand < hitRate) {
+    // Doppel-Trefferchance: ~9% bei 35 bis ~47% bei 95
+    const dHit = 0.09 + s * 0.38;
+    const dSingle = 0.50; // Treffer ins Single (innen)
+    if (rand < dHit) {
       return parsedTarget;
-    } else if (rand < hitRate + 0.30) {
-      // Innen getroffen -> Single!
+    } else if (rand < dHit + dSingle) {
       return parseSegment(parsedTarget.value === 25 ? '25' : `S${parsedTarget.value}`);
     } else {
-      // Draußen vorbei -> Miss
       return parseSegment('0');
     }
   }
 
   if (parsedTarget.isTriple) {
-    const hitRate = 0.10 + avgFactor * 0.50; // 15% bis 59%
-    if (rand < hitRate) {
+    // Triple-Trefferquote: ~4% bei 35 bis ~47% bei 95
+    const tHit = 0.04 + s * 0.43;
+    const sHit = 0.40 + s * 0.06;
+    const nHit = Math.max(0.08, 0.46 - s * 0.36);
+
+    if (rand < tHit) {
       return parsedTarget;
-    } else if (rand < hitRate + 0.45) {
-      // Single des gleichen Segments
+    } else if (rand < tHit + sHit) {
       return parseSegment(`S${parsedTarget.value}`);
-    } else if (rand < hitRate + 0.75) {
-      // Nachbarfeld Single (z.B. bei T20: 1 oder 5)
+    } else if (rand < tHit + sHit + nHit) {
       const neighbors = getSegmentNeighbors(parsedTarget.value);
       const neighbor = Math.random() < 0.5 ? neighbors[0] : neighbors[1];
       return parseSegment(`S${neighbor}`);
     } else {
-      // Abgerutscht
       return parseSegment('0');
     }
   }
 
   // Single Wurf
-  const singleHitRate = 0.50 + avgFactor * 0.45;
-  if (rand < singleHitRate) {
+  const singleHit = 0.45 + s * 0.45;
+  if (rand < singleHit) {
     return parsedTarget;
   } else {
     const neighbors = getSegmentNeighbors(parsedTarget.value);
@@ -494,47 +496,51 @@ export function simulateBotThrow(currentScore, dartsLeftInTurn, botAverage = 60,
  * Universeller Wurf-Simulator auf ein beliebiges Zielsegment.
  */
 export function simulateGenericThrow(targetStr, botAverage = 60) {
-  const avgFactor = Math.min(Math.max((botAverage - 20) / 90, 0.1), 0.98);
+  const s = Math.min(Math.max((botAverage - 28) / 67, 0), 1.2);
   const rand = Math.random();
   const parsedTarget = parseSegment(targetStr);
 
   if (parsedTarget.label === 'BULL') {
-    const bullHit = 0.10 + avgFactor * 0.35;
-    const outerBullHit = 0.30 + avgFactor * 0.30;
+    const bullHit = 0.05 + s * 0.35;
+    const outerBullHit = 0.20 + s * 0.35;
     if (rand < bullHit) return parseSegment('BULL');
     if (rand < bullHit + outerBullHit) return parseSegment('25');
-    // Abgerutscht in Single 1..20
     const randomSeg = BOARD_SEGMENTS[Math.floor(Math.random() * BOARD_SEGMENTS.length)];
     return parseSegment(`S${randomSeg}`);
   }
 
   if (parsedTarget.label === '25') {
-    const outerBullHit = 0.35 + avgFactor * 0.40;
+    const outerBullHit = 0.25 + s * 0.45;
     if (rand < outerBullHit) return parseSegment('25');
-    if (rand < outerBullHit + 0.10) return parseSegment('BULL');
+    if (rand < outerBullHit + 0.05 + s * 0.10) return parseSegment('BULL');
     const randomSeg = BOARD_SEGMENTS[Math.floor(Math.random() * BOARD_SEGMENTS.length)];
     return parseSegment(`S${randomSeg}`);
   }
 
   if (parsedTarget.isDouble) {
-    const hitRate = 0.15 + avgFactor * 0.45;
-    if (rand < hitRate) return parsedTarget;
-    if (rand < hitRate + 0.35) return parseSegment(`S${parsedTarget.value}`);
+    const dHit = 0.09 + s * 0.38;
+    const dSingle = 0.50;
+    if (rand < dHit) return parsedTarget;
+    if (rand < dHit + dSingle) return parseSegment(`S${parsedTarget.value}`);
     return parseSegment('0');
   }
 
   if (parsedTarget.isTriple) {
-    const hitRate = 0.12 + avgFactor * 0.48;
-    if (rand < hitRate) return parsedTarget;
-    if (rand < hitRate + 0.45) return parseSegment(`S${parsedTarget.value}`);
-    const neighbors = getSegmentNeighbors(parsedTarget.value);
-    const neighbor = Math.random() < 0.5 ? neighbors[0] : neighbors[1];
-    return parseSegment(`S${neighbor}`);
+    const tHit = 0.04 + s * 0.43;
+    const sHit = 0.40 + s * 0.06;
+    const nHit = Math.max(0.08, 0.46 - s * 0.36);
+    if (rand < tHit) return parsedTarget;
+    if (rand < tHit + sHit) return parseSegment(`S${parsedTarget.value}`);
+    if (rand < tHit + sHit + nHit) {
+      const neighbors = getSegmentNeighbors(parsedTarget.value);
+      return parseSegment(`S${Math.random() < 0.5 ? neighbors[0] : neighbors[1]}`);
+    }
+    return parseSegment('0');
   }
 
   // Single Ziel
-  const singleHitRate = 0.55 + avgFactor * 0.40;
-  if (rand < singleHitRate) return parsedTarget;
+  const singleHit = 0.45 + s * 0.45;
+  if (rand < singleHit) return parsedTarget;
   const neighbors = getSegmentNeighbors(parsedTarget.value);
   const neighbor = Math.random() < 0.5 ? neighbors[0] : neighbors[1];
   return parseSegment(`S${neighbor}`);
