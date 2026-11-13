@@ -67,7 +67,9 @@ export class ProfileManager {
   }
 
   playPreviewSound(soundKey) {
-    if (soundKey === 'fanfare') {
+    if (audio.playWalkonSound) {
+      audio.playWalkonSound(soundKey);
+    } else if (soundKey === 'fanfare') {
       audio.synthesizeFanfare();
     } else if (soundKey === 'bull') {
       audio.synthesizeBullseye();
@@ -76,7 +78,7 @@ export class ProfileManager {
     } else if (soundKey === 'double') {
       audio.synthesizeRing(2);
     } else {
-      audio.synthesizeChime();
+      audio.synthesizeChime(soundKey);
     }
   }
 

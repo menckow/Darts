@@ -19,9 +19,11 @@ export class CallerEngine {
 
   initAudioContext() {
     try {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (AudioContextClass) {
-        this.audioCtx = new AudioContextClass();
+      if (typeof window !== 'undefined') {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          this.audioCtx = new AudioContextClass();
+        }
       }
     } catch (e) {
       console.warn('Web Audio API nicht unterstützt:', e);
@@ -29,8 +31,15 @@ export class CallerEngine {
   }
 
   ensureAudioResumed() {
+    if (!this.audioCtx) {
+      this.initAudioContext();
+    }
     if (this.audioCtx && this.audioCtx.state === 'suspended') {
-      this.audioCtx.resume();
+      try {
+        this.audioCtx.resume().catch(() => {});
+      } catch (e) {
+        // Ignorieren falls nicht erlaubt
+      }
     }
   }
 
@@ -103,23 +112,132 @@ export class CallerEngine {
     osc.stop(time + 0.1);
   }
 
-  playTone(freq, type, duration, volume) {
+  playTone(freq, type, duration, volume, delay = 0) {
     if (!this.audioCtx) return;
-    const now = this.audioCtx.currentTime;
+    const now = this.audioCtx.currentTime + delay;
     const osc = this.audioCtx.createOscillator();
     const gain = this.audioCtx.createGain();
 
     osc.type = type;
     osc.frequency.setValueAtTime(freq, now);
 
-    gain.gain.setValueAtTime(volume, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    const safeVol = Math.max(volume || 0.001, 0.0001);
+    gain.gain.setValueAtTime(safeVol, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
     osc.connect(gain);
     gain.connect(this.audioCtx.destination);
 
     osc.start(now);
     osc.stop(now + duration);
+  }
+
+  /**
+   * Synthetisiert einen melodischen Chime (Glöckchen / Röhrenglocke)
+   */
+  synthesizeChime(pitch = 'chime_high') {
+    if (!this.soundEnabled) return;
+    this.ensureAudioResumed();
+
+    let notes;
+    let baseDuration;
+    let stepMs;
+
+    if (pitch === 'chime_low' || pitch === 'low') {
+      // Tiefer Gong / Röhrenglocke (D4, F#4, A4, D5)
+      notes = [293.66, 369.99, 440.00, 587.33];
+      baseDuration = 1.1;
+      stepMs = 110;
+    } else if (pitch === 'chime_mid' || pitch === 'mid') {
+      // Warmer Mittelton-Chime (A5, C#6, E6, A6)
+      notes = [880.00, 1108.73, 1318.51, 1760.00];
+      baseDuration = 0.8;
+      stepMs = 90;
+    } else {
+      // Heller, perlender High Chime (E6, G#6, B6, E7)
+      notes = [1318.51, 1661.22, 1975.53, 2637.02];
+      baseDuration = 0.7;
+      stepMs = 80;
+    }
+
+    notes.forEach((freq, idx) => {
+      setTimeout(() => {
+        // Grundton mit sanfter Sinuswelle
+        this.playTone(freq, 'sine', baseDuration, this.sfxVolume * 0.7);
+        // Weicher Glanz darüber
+        this.playTone(freq * 2, 'triangle', baseDuration * 0.5, this.sfxVolume * 0.15);
+      }, idx * stepMs);
+    });
+  }
+
+  /**
+   * PDC Fanfare
+   */
+  synthesizeFanfare() {
+    this.playFanfare();
+  }
+
+  /**
+   * Bullseye / Gong Klang
+   */
+  synthesizeBullseye() {
+    if (!this.soundEnabled) return;
+    this.ensureAudioResumed();
+
+    // Bullseye Gong: Kombination aus Anschlag und tiefem Nachhall
+    this.playTone(880, 'sine', 0.25, this.sfxVolume * 0.8);
+    this.playTone(1320, 'sine', 0.35, this.sfxVolume * 0.7);
+    this.playTone(440, 'triangle', 0.9, this.sfxVolume * 0.6);
+    this.playTone(220, 'sine', 1.2, this.sfxVolume * 0.5);
+  }
+
+  /**
+   * Doppel / Dreifach Ring Sound
+   */
+  synthesizeRing(multiplier = 2) {
+    if (!this.soundEnabled) return;
+    this.ensureAudioResumed();
+
+    if (multiplier === 3) {
+      this.playTone(1200, 'triangle', 0.12, this.sfxVolume * 0.8);
+      setTimeout(() => this.playTone(1800, 'sine', 0.25, this.sfxVolume * 0.7), 60);
+    } else {
+      this.playTone(950, 'sine', 0.15, this.sfxVolume * 0.8);
+      setTimeout(() => this.playTone(1425, 'sine', 0.25, this.sfxVolume * 0.6), 50);
+    }
+  }
+
+  /**
+   * Zentraler Einstiegspunkt für Walk-On Sounds
+   */
+  playWalkonSound(soundKey = 'chime_high') {
+    switch (soundKey) {
+      case 'fanfare':
+        this.synthesizeFanfare();
+        break;
+      case 'bull':
+        this.synthesizeBullseye();
+        break;
+      case 'triple':
+        this.synthesizeRing(3);
+        break;
+      case 'double':
+        this.synthesizeRing(2);
+        break;
+      case 'chime_low':
+      case 'low':
+        this.synthesizeChime('chime_low');
+        break;
+      case 'chime_mid':
+      case 'mid':
+        this.synthesizeChime('chime_mid');
+        break;
+      case 'chime_high':
+      case 'high':
+      default:
+        this.synthesizeChime('chime_high');
+        break;
+    }
   }
 
   playBustSound() {
