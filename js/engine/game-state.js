@@ -296,6 +296,9 @@ export class GameEngine {
     }
 
     // Fake Darts für Statistik
+    const simulatedDarts = [
+      { score: Math.round(sumScore / dartsThrown), label: `${sumScore}` }
+    ];
     this.currentTurnDarts = simulatedDarts;
 
     player.currentLegDarts += dartsThrown;

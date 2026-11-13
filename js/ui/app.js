@@ -454,18 +454,20 @@ class DartsApp {
     if (digit === 'CLEAR') {
       this.sumInputBuffer = '';
     } else if (digit === 'ENTER') {
-      if (this.sumInputBuffer.length > 0) {
-        const score = parseInt(this.sumInputBuffer, 10);
-        if (score >= 0 && score <= 180) {
-          this.submitSumScore(score);
-          this.sumInputBuffer = '';
-        } else {
-          this.showToast('Maximal 180 Punkte pro Aufnahme!', 'toast-warn');
-        }
+      const scoreStr = this.sumInputBuffer.length > 0 ? this.sumInputBuffer : '0';
+      const score = parseInt(scoreStr, 10);
+      if (!isNaN(score) && score >= 0 && score <= 180) {
+        this.submitSumScore(score);
+        this.sumInputBuffer = '';
+      } else {
+        this.showToast('Maximal 180 Punkte pro Aufnahme (0 - 180)!', 'toast-warn');
       }
     } else if (digit === 'BACK') {
       this.sumInputBuffer = this.sumInputBuffer.slice(0, -1);
     } else {
+      if (this.sumInputBuffer === '0') {
+        this.sumInputBuffer = '';
+      }
       if (this.sumInputBuffer.length < 3) {
         this.sumInputBuffer += digit;
       }
@@ -1087,6 +1089,12 @@ class DartsApp {
     window.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
 
+      // Keine Spiel-Eingaben wenn ein Modal geöffnet ist
+      const activeModal = document.querySelector('.app-modal.active');
+      if (activeModal) return;
+
+      if (!this.engine) return;
+
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
         e.preventDefault();
         if (e.shiftKey) {
@@ -1109,14 +1117,27 @@ class DartsApp {
         return;
       }
 
-      if (this.engine.inputMode === 'SUM') {
-        if (e.key >= '0' && e.key <= '9') {
+      // Tastatur-Ziffern und Enter (X01 oder SUM Modus)
+      const isDigit = e.key >= '0' && e.key <= '9';
+      const isEnter = e.key === 'Enter' || e.code === 'NumpadEnter';
+      const isBack = e.key === 'Backspace';
+      const isClear = e.key === 'Escape';
+
+      if (this.engine.inputMode === 'SUM' || (this.engine.gameMode === 'X01' && (isDigit || isEnter || isBack || isClear))) {
+        if (isDigit) {
+          // Falls noch im DARTS Modus, nahtlos zu SUM Modus wechseln
+          if (this.engine.inputMode !== 'SUM') {
+            this.switchInputMode('SUM');
+          }
           this.handleSumDigit(e.key);
-        } else if (e.key === 'Enter') {
+        } else if (isEnter) {
+          e.preventDefault();
           this.handleSumDigit('ENTER');
-        } else if (e.key === 'Backspace') {
+        } else if (isBack) {
+          e.preventDefault();
           this.handleSumDigit('BACK');
-        } else if (e.key === 'Escape') {
+        } else if (isClear) {
+          e.preventDefault();
           this.handleSumDigit('CLEAR');
         }
       }
