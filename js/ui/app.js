@@ -1096,13 +1096,6 @@ class DartsApp {
       row.remove();
     });
 
-    container.appendChild(row);
-
-    if (this.profileManager) {
-      this.profileManager.populateSetupSelectors();
-    }
-  }
-
     this.bindSetupRowSelect(row);
     container.appendChild(row);
 
