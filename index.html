@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="de" class="theme-pdc">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Darts Master Scoreboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top App Navigation & Header -->
+  <header class="app-header">
+    <div class="brand-wrapper">
+      <span class="brand-icon">🎯</span>
+      <h1 class="brand-title">DARTS MASTER</h1>
+      <div class="match-meta" id="match-meta-info">
+        <span class="badge rule-badge">501 DOUBLE OUT</span>
+        <span class="badge format-badge">Leg 1 (First to 3)</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn" id="btn-undo" title="Letzten Wurf zurücknehmen (Ctrl+Z)" disabled>
+        ↩ Rückgängig
+      </button>
+      <button class="btn" id="btn-redo" title="Wurf wiederholen (Ctrl+Y)" disabled>
+        ↪ Wiederholen
+      </button>
+      <button class="btn" id="btn-profiles" title="Spielerprofile verwalten">
+        👤 Profile
+      </button>
+      <button class="btn" id="btn-stats" title="Laufende Match-Statistiken anzeigen">
+        📈 Match-Stats
+      </button>
+      <button class="btn" id="btn-stats-h2h" title="Head-to-Head, Heatmap & Langzeit-Statistiken">
+        📊 Statistiken & H2H
+      </button>
+      <button class="btn btn-primary" id="btn-new-match" title="Neues Spiel konfigurieren">
+        🎯 Neues Match
+      </button>
+      <button class="btn" id="btn-settings" title="Einstellungen & Themes">
+        ⚙️
+      </button>
+    </div>
+  </header>
+
+  <!-- Haupt-Spielfeld (Oche Arena) -->
+  <main class="main-arena">
+
+    <!-- Adaptiver Modus-Banner -->
+    <!-- 1. X01 Checkout Guide Banner -->
+    <div class="checkout-banner" id="checkout-guide-banner" style="display: none;">
+      <!-- Dynamischer Inhalt via app.js -->
+    </div>
+
+    <!-- 2. Around the Clock Ziel-Banner -->
+    <div class="mode-info-banner attc-banner" id="attc-banner" style="display: none;">
+      <!-- Dynamischer Inhalt via app.js -->
+    </div>
+
+    <!-- 3. Bob's 27 Runden-Banner -->
+    <div class="mode-info-banner bobs27-banner" id="bobs27-banner" style="display: none;">
+      <!-- Dynamischer Inhalt via app.js -->
+    </div>
+
+    <!-- 4. Shanghai Runden- & Instant-Win Banner -->
+    <div class="mode-info-banner shanghai-banner" id="shanghai-banner" style="display: none;">
+      <!-- Dynamischer Inhalt via app.js -->
+    </div>
+
+    <!-- Scoreboard Anzeige aller Spieler (Lesbar aus 2,5 m Distanz) -->
+    <section class="scoreboard-players-grid" id="scoreboard-players">
+      <!-- Spieler-Karten werden dynamisch von app.js generiert -->
+    </section>
+
+    <!-- Cricket Matrix Scoreboard (Klassische vertikale Kreide-Tabelle) -->
+    <section class="cricket-matrix-wrapper" id="cricket-matrix-container" style="display: none;">
+      <!-- Wird dynamisch von app.js generiert -->
+    </section>
+
+    <!-- Aufnahme-Leiste (Aktuelle 3 Darts + Modus-Umschalter) -->
+    <section class="turn-control-bar">
+      <div class="current-turn-indicator">
+        <span class="turn-slots-label">Aufnahme:</span>
+        <div class="current-turn-slots" id="current-turn-slots">
+          <div class="turn-dart-slot empty"><span class="dart-placeholder">Dart 1</span></div>
+          <div class="turn-dart-slot empty"><span class="dart-placeholder">Dart 2</span></div>
+          <div class="turn-dart-slot empty"><span class="dart-placeholder">Dart 3</span></div>
+        </div>
+      </div>
+
+      <div class="turn-actions">
+        <div class="mode-toggle-group">
+          <button class="mode-btn active" id="btn-mode-darts">🎯 Dart-für-Dart</button>
+          <button class="mode-btn" id="btn-mode-sum">🔢 3-Dart Summe</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interaktiver Eingabebereich -->
+    <section class="input-interactive-section">
+
+      <!-- MODUS 1: Dart-für-Dart Eingabe (Dartboard + Segmenttasten) -->
+      <div class="input-darts-grid" id="input-section-darts">
+        <!-- SVG Dartboard Spalte -->
+        <div class="board-col">
+          <div class="dartboard-wrapper" id="dartboard-container">
+            <!-- SVG Dartboard wird von dartboard.js injiziert -->
+          </div>
+        </div>
+
+        <!-- Segment Tastatur Spalte -->
+        <div class="keypad-col">
+          <!-- Multiplikator Tasten -->
+          <div class="multiplier-bar">
+            <button class="multiplier-toggle-btn active" data-multiplier="1">SINGLE (1x)</button>
+            <button class="multiplier-toggle-btn" data-multiplier="2">DOUBLE (2x)</button>
+            <button class="multiplier-toggle-btn" data-multiplier="3">TRIPLE (3x)</button>
+          </div>
+
+          <!-- Segmente 1 bis 20 + Bull & Miss -->
+          <div class="numbers-grid">
+            <button class="segment-num-btn" data-value="20">20</button>
+            <button class="segment-num-btn" data-value="1">1</button>
+            <button class="segment-num-btn" data-value="18">18</button>
+            <button class="segment-num-btn" data-value="4">4</button>
+            <button class="segment-num-btn" data-value="13">13</button>
+
+            <button class="segment-num-btn" data-value="6">6</button>
+            <button class="segment-num-btn" data-value="10">10</button>
+            <button class="segment-num-btn" data-value="15">15</button>
+            <button class="segment-num-btn" data-value="2">2</button>
+            <button class="segment-num-btn" data-value="17">17</button>
+
+            <button class="segment-num-btn" data-value="3">3</button>
+            <button class="segment-num-btn" data-value="19">19</button>
+            <button class="segment-num-btn" data-value="7">7</button>
+            <button class="segment-num-btn" data-value="16">16</button>
+            <button class="segment-num-btn" data-value="8">8</button>
+
+            <button class="segment-num-btn" data-value="11">11</button>
+            <button class="segment-num-btn" data-value="14">14</button>
+            <button class="segment-num-btn" data-value="9">9</button>
+            <button class="segment-num-btn" data-value="12">12</button>
+            <button class="segment-num-btn" data-value="5">5</button>
+
+            <!-- Sondertasten -->
+            <button class="segment-num-btn btn-outer-bull" data-value="25">25 (Bull)</button>
+            <button class="segment-num-btn btn-bull" data-value="BULL">50 (D-Bull)</button>
+            <button class="segment-num-btn btn-miss" data-value="0" style="grid-column: span 3;">0 (Fehlwurf / Miss)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODUS 2: 3-Dart-Summen Ziffernblock -->
+      <div class="input-sum-container" id="input-section-sum" style="display: none;">
+        <div class="sum-display-box">
+          <span class="sum-display-label">Eingegebene Punktzahl:</span>
+          <span class="sum-display-value" id="sum-input-display">0</span>
+        </div>
+
+        <!-- Quick Score Schnellwahltasten -->
+        <div class="quick-scores-row">
+          <button class="quick-sum-btn" data-sum="26">26</button>
+          <button class="quick-sum-btn" data-sum="41">41</button>
+          <button class="quick-sum-btn" data-sum="45">45</button>
+          <button class="quick-sum-btn" data-sum="60">60</button>
+          <button class="quick-sum-btn" data-sum="81">81</button>
+          <button class="quick-sum-btn" data-sum="85">85</button>
+          <button class="quick-sum-btn" data-sum="100">100</button>
+          <button class="quick-sum-btn" data-sum="140">140</button>
+          <button class="quick-sum-btn" data-sum="180">180 🎯</button>
+        </div>
+
+        <!-- Digitaler Numpad -->
+        <div class="numpad-grid">
+          <button class="numpad-btn" data-digit="7">7</button>
+          <button class="numpad-btn" data-digit="8">8</button>
+          <button class="numpad-btn" data-digit="9">9</button>
+          <button class="numpad-btn" data-digit="4">4</button>
+          <button class="numpad-btn" data-digit="5">5</button>
+          <button class="numpad-btn" data-digit="6">6</button>
+          <button class="numpad-btn" data-digit="1">1</button>
+          <button class="numpad-btn" data-digit="2">2</button>
+          <button class="numpad-btn" data-digit="3">3</button>
+          <button class="numpad-btn btn-clear" data-digit="CLEAR">C</button>
+          <button class="numpad-btn" data-digit="0">0</button>
+          <button class="numpad-btn btn-enter" data-digit="ENTER">↵ Bestätigen</button>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- ==========================================================================
+       MODALS & OVERLAYS
+       ========================================================================== -->
+
+  <!-- Modal: Neues Match Setup -->
+  <div class="app-modal" id="modal-setup">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">🎯 Neues Match konfigurieren</h2>
+        <button class="modal-close-btn">&times;</button>
+      </div>
+      <form id="setup-match-form">
+        <div class="modal-body">
+
+          <!-- Spielmodus Haupt-Auswahl -->
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="setup-game-mode" style="color: var(--accent-gold); font-size: 0.95rem;">🎯 Spielmodus auswählen</label>
+            <select id="setup-game-mode" class="form-control" style="font-size: 1.05rem; font-weight: 700;">
+              <option value="X01" selected>🎯 X01 (301, 501, 701, 901)</option>
+              <option value="CRICKET">🏏 Cricket & Cut-Throat</option>
+              <option value="AROUND_THE_CLOCK">⏰ Around The Clock (1–20 + Bull)</option>
+              <option value="BOBS_27">🔥 Bob's 27 (Doppel-Training)</option>
+              <option value="SHANGHAI">⚡ Shanghai (Party & Instant-Win)</option>
+            </select>
+          </div>
+
+          <!-- Modus-spezifische Optionen: X01 -->
+          <div id="mode-options-x01" class="mode-options-section">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="setup-start-score">Startpunkte</label>
+                <select id="setup-start-score" class="form-control">
+                  <option value="501" selected>501</option>
+                  <option value="301">301</option>
+                  <option value="701">701</option>
+                  <option value="901">901</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="setup-in-rule">In-Regel</label>
+                <select id="setup-in-rule" class="form-control">
+                  <option value="STRAIGHT" selected>Straight In</option>
+                  <option value="DOUBLE">Double In</option>
+                  <option value="MASTER">Master In</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="setup-out-rule">Out-Regel</label>
+                <select id="setup-out-rule" class="form-control">
+                  <option value="DOUBLE" selected>Double Out</option>
+                  <option value="STRAIGHT">Straight Out</option>
+                  <option value="MASTER">Master Out</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="setup-legs-to-win">Legs zum Sieg (First to)</label>
+                <select id="setup-legs-to-win" class="form-control">
+                  <option value="1">1 Leg</option>
+                  <option value="2">2 Legs</option>
+                  <option value="3" selected>3 Legs (Best of 5)</option>
+                  <option value="4">4 Legs (Best of 7)</option>
+                  <option value="5">5 Legs (Best of 9)</option>
+                  <option value="7">7 Legs</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="setup-sets-to-win">Sets zum Sieg</label>
+                <select id="setup-sets-to-win" class="form-control">
+                  <option value="1" selected>1 Set (Nur Legs)</option>
+                  <option value="3">3 Sets (World Champ)</option>
+                  <option value="5">5 Sets</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modus-spezifische Optionen: Cricket -->
+          <div id="mode-options-cricket" class="mode-options-section" style="display: none;">
+            <div class="form-group">
+              <label for="setup-cricket-type">Cricket Variante</label>
+              <select id="setup-cricket-type" class="form-control">
+                <option value="STANDARD" selected>Standard Cricket (Eigene Punkte sammeln)</option>
+                <option value="CUT_THROAT">Cut-Throat Cricket (Strafpunkte für Gegner bei 3+ Spielern)</option>
+                <option value="NO_SCORE">No-Score Cricket (Reines Schließen ohne Punkte)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Modus-spezifische Optionen: Around the Clock -->
+          <div id="mode-options-attc" class="mode-options-section" style="display: none;">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="setup-attc-variant">Treffer-Vorgabe</label>
+                <select id="setup-attc-variant" class="form-control">
+                  <option value="ANY" selected>Single / Jedes Segment zählt</option>
+                  <option value="DOUBLE_ONLY">Nur Doppel (D1 bis Bull)</option>
+                  <option value="TRIPLE_ONLY">Nur Triple (T1 bis Bull)</option>
+                </select>
+              </div>
+              <div class="form-group" style="display: flex; flex-direction: column; justify-content: center;">
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 8px; margin-top: 15px;">
+                  <input type="checkbox" id="setup-attc-skip" checked />
+                  <span>Skip-Bonus (Double +2, Triple +3 vor)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modus-spezifische Optionen: Bob's 27 -->
+          <div id="mode-options-bobs27" class="mode-options-section" style="display: none;">
+            <div class="form-group">
+              <label style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="setup-bobs-practice" />
+                <span>Trainingsmodus "Durchspielen" (kein Ausscheiden bei &lt; 0 Punkten)</span>
+              </label>
+              <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                Standard: Sofortiges Game Over, sobald der Punktestand unter 0 fällt.
+              </small>
+            </div>
+          </div>
+
+          <!-- Modus-spezifische Optionen: Shanghai -->
+          <div id="mode-options-shanghai" class="mode-options-section" style="display: none;">
+            <div class="form-group">
+              <label for="setup-shanghai-rounds">Runden & Segmente</label>
+              <select id="setup-shanghai-rounds" class="form-control">
+                <option value="1-7" selected>Klassisch 1–7 (7 Runden, schnelle Party-Runde)</option>
+                <option value="10-15">Runden 10–15 (6 Runden)</option>
+                <option value="15-20_BULL">Runden 15–20 + Bull (7 Runden)</option>
+                <option value="1-20">Volle Distanz 1–20 (20 Runden)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <label style="margin: 0;">Spieler & Gegner (1 bis 8 Teilnehmer)</label>
+              <button type="button" class="btn btn-sm" id="btn-quick-open-profiles" style="font-size: 0.8rem; padding: 4px 8px;">
+                👤 Profile verwalten
+              </button>
+            </div>
+            <div class="setup-players-list" id="setup-players-container">
+              <div class="setup-player-row">
+                <select class="setup-player-select form-control">
+                  <option value="">-- Profil auswählen --</option>
+                </select>
+                <input type="text" class="player-name-input form-control" value="Spieler 1" required />
+                <label class="bot-label"><input type="checkbox" class="player-bot-toggle" /> Bot</label>
+                <select class="player-bot-avg form-control" disabled>
+                  <option value="35">Anfänger (Avg 35)</option>
+                  <option value="50">Hobbyspieler (Avg 50)</option>
+                  <option value="65" selected>Vereinsspieler (Avg 65)</option>
+                  <option value="80">Halbprofi (Avg 80)</option>
+                  <option value="95">PDC Pro (Avg 95)</option>
+                </select>
+                <input type="color" class="player-color-input" value="#00e5ff" />
+                <button type="button" class="btn-remove-player btn-danger">✕</button>
+              </div>
+
+              <div class="setup-player-row">
+                <select class="setup-player-select form-control">
+                  <option value="">-- Profil auswählen --</option>
+                </select>
+                <input type="text" class="player-name-input form-control" value="DartBot" required />
+                <label class="bot-label"><input type="checkbox" class="player-bot-toggle" checked /> Bot</label>
+                <select class="player-bot-avg form-control">
+                  <option value="35">Anfänger (Avg 35)</option>
+                  <option value="50">Hobbyspieler (Avg 50)</option>
+                  <option value="60" selected>Vereinsspieler (Avg 60)</option>
+                  <option value="80">Halbprofi (Avg 80)</option>
+                  <option value="95">PDC Pro (Avg 95)</option>
+                </select>
+                <input type="color" class="player-color-input" value="#ff2a70" />
+                <button type="button" class="btn-remove-player btn-danger">✕</button>
+              </div>
+            </div>
+            <button type="button" class="btn" id="btn-add-setup-player">+ Weiteren Spieler hinzufügen</button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn modal-close-btn">Abbrechen</button>
+          <button type="submit" class="btn btn-primary">Match Starten 🎯</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Statistiken -->
+  <div class="app-modal" id="modal-stats">
+    <div class="modal-content" style="max-width: 960px; max-height: 92vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h2 class="modal-title">📊 Match-Statistiken</h2>
+        <button class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body" id="stats-modal-body">
+        <!-- Dynamische Tabelle via ScoliaDashboard -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary modal-close-btn">Schließen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Spieler-Profile -->
+  <div class="app-modal" id="modal-profiles">
+    <div class="modal-content" style="max-width: 680px;">
+      <div class="modal-header">
+        <h2 class="modal-title">👤 Spieler-Profile</h2>
+        <button class="modal-close-btn" id="btn-close-profiles">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <p style="margin: 0; color: var(--text-muted);">Erstelle oder bearbeite Profile für individuelle Averages, Heatmaps und Walk-On Chimes.</p>
+          <button type="button" class="btn btn-primary" id="btn-new-profile">+ Neues Profil</button>
+        </div>
+
+        <!-- Profil Formular (Neu / Bearbeiten) -->
+        <div id="profile-form-container" class="profile-form-box hidden">
+          <h3 id="profile-form-title" style="margin-top: 0;">Profil konfigurieren</h3>
+          <form id="profile-form">
+            <div class="form-row">
+              <div class="form-group" style="flex: 2;">
+                <label for="profile-name">Spielername</label>
+                <input type="text" id="profile-name" class="form-control" placeholder="z. B. The Power" required />
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label for="profile-avatar">Avatar (Emoji)</label>
+                <input type="text" id="profile-avatar" class="form-control" value="🎯" maxlength="4" style="text-align: center; font-size: 1.3rem;" />
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label for="profile-color">Badge-Farbe</label>
+                <input type="color" id="profile-color" class="player-color-input" value="#00f0ff" style="width: 100%; height: 42px;" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="profile-fav-double">Lieblings-Doppel</label>
+                <select id="profile-fav-double" class="form-control">
+                  <option value="D20">Tops (D20)</option>
+                  <option value="D16">D16</option>
+                  <option value="D10">D10</option>
+                  <option value="D8">D8</option>
+                  <option value="D12">D12</option>
+                  <option value="D18">D18</option>
+                  <option value="Bull">Bullseye (D25)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="profile-handicap">Handikap (Punkte)</label>
+                <input type="number" id="profile-handicap" class="form-control" value="0" min="-100" max="100" />
+              </div>
+              <div class="form-group">
+                <label for="profile-sound">Walk-On Chime</label>
+                <div style="display: flex; gap: 8px;">
+                  <select id="profile-sound" class="form-control">
+                    <option value="chime_high">High Chime</option>
+                    <option value="chime_mid">Mid Chime</option>
+                    <option value="chime_low">Deep Chime</option>
+                    <option value="fanfare">PDC Fanfare</option>
+                    <option value="bull">Bull Gong</option>
+                  </select>
+                  <button type="button" class="btn" id="btn-preview-sound" title="Test abspielen">🔊</button>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px;">
+              <button type="button" class="btn" id="btn-cancel-profile">Abbrechen</button>
+              <button type="submit" class="btn btn-primary" id="btn-save-profile">Speichern</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Profil-Liste -->
+        <div class="profiles-list-grid" id="profiles-list">
+          <!-- Dynamisch gerendert -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Head-to-Head & Langzeit-Statistiken -->
+  <div class="app-modal" id="modal-h2h-stats">
+    <div class="modal-content" style="max-width: 900px;">
+      <div class="modal-header">
+        <h2 class="modal-title">📊 Statistiken & Head-to-Head</h2>
+        <button class="modal-close-btn" id="btn-close-h2h-stats">&times;</button>
+      </div>
+
+      <!-- Tab Navigation -->
+      <div class="h2h-tab-bar">
+        <button class="h2h-tab-btn active" data-tab="h2h">⚔️ Head-to-Head</button>
+        <button class="h2h-tab-btn" data-tab="history">📜 Match-Historie</button>
+        <button class="h2h-tab-btn" data-tab="heatmap">🎯 Treffer-Heatmap</button>
+        <button class="h2h-tab-btn" data-tab="backup">💾 Backup & Export</button>
+      </div>
+
+      <div class="modal-body" style="padding: 16px 20px;">
+        <!-- TAB 1: Head-to-Head -->
+        <div class="h2h-tab-panel active" id="tab-panel-h2h">
+          <div class="h2h-selector-bar">
+            <div class="form-group" style="flex: 1;">
+              <label>Spieler A</label>
+              <select id="h2h-player-a" class="form-control"></select>
+            </div>
+            <div style="font-weight: 900; font-size: 1.5rem; color: var(--accent-gold); padding: 0 10px; margin-top: 22px;">VS</div>
+            <div class="form-group" style="flex: 1;">
+              <label>Spieler B</label>
+              <select id="h2h-player-b" class="form-control"></select>
+            </div>
+          </div>
+          <div id="h2h-content">
+            <!-- Dynamisch via stats-dashboard.js -->
+          </div>
+        </div>
+
+        <!-- TAB 2: Match-Historie -->
+        <div class="h2h-tab-panel" id="tab-panel-history">
+          <div id="h2h-matches-list" class="history-matches-container">
+            <!-- Dynamisch via stats-dashboard.js -->
+          </div>
+        </div>
+
+        <!-- TAB 3: Heatmap -->
+        <div class="h2h-tab-panel" id="tab-panel-heatmap">
+          <div class="heatmap-controls-row">
+            <div class="form-group">
+              <label>Spieler</label>
+              <select id="heatmap-player-select" class="form-control"></select>
+            </div>
+            <div class="form-group">
+              <label>Spielmodus</label>
+              <select id="heatmap-mode-select" class="form-control">
+                <option value="all" selected>Alle Modi</option>
+                <option value="x01">X01 (501 / 301)</option>
+                <option value="cricket">Cricket</option>
+                <option value="attc">Around the Clock</option>
+                <option value="bobs27">Bob's 27</option>
+                <option value="shanghai">Shanghai</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Darstellungsart</label>
+              <select id="heatmap-type-select" class="form-control">
+                <option value="hybrid" selected>Hybrid (Streuwolke & Segmente)</option>
+                <option value="density">Nur Streuwolke (Board-Klicks)</option>
+                <option value="choropleth">Nur Segmente (Trefferquote)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="heatmap-stage-wrapper">
+            <div class="heatmap-board-container" id="heatmap-board-container">
+              <!-- SVG Board for Background & Segments -->
+              <div id="heatmap-board-mount" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
+              <!-- Transparent Canvas for Gaussian Density Cloud -->
+              <canvas id="heatmap-canvas" width="440" height="440"></canvas>
+            </div>
+          </div>
+
+          <div id="heatmap-stats-summary" class="heatmap-stats-bar">
+            <!-- Zusammenfassung -->
+          </div>
+        </div>
+
+        <!-- TAB 4: Backup & Export -->
+        <div class="h2h-tab-panel" id="tab-panel-backup">
+          <div class="backup-grid">
+            <div class="backup-card">
+              <h3>📄 CSV Export</h3>
+              <p>Exportiere alle Spieldaten und Einzeltreffer im CSV-Format für Excel, Numbers oder Google Sheets.</p>
+              <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button type="button" class="btn" id="btn-export-matches-csv">Matches CSV</button>
+                <button type="button" class="btn" id="btn-export-darts-csv">Einzeltreffer CSV</button>
+              </div>
+            </div>
+
+            <div class="backup-card">
+              <h3>💾 JSON Backup & Restore</h3>
+              <p>Erstelle ein vollständiges Backup aller Spielerprofile, Statistiken und Wurf-Historien.</p>
+              <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+                <button type="button" class="btn btn-primary" id="btn-download-backup-json">Backup herunterladen (.json)</button>
+                <label class="btn btn-secondary" style="text-align: center; cursor: pointer;">
+                  Backup wiederherstellen (.json)
+                  <input type="file" id="input-restore-json" accept=".json" style="display: none;" />
+                </label>
+              </div>
+            </div>
+
+            <div class="backup-card danger-zone">
+              <h3 style="color: var(--accent-red);">⚠️ Gefahrenzone</h3>
+              <p>Löscht alle gespeicherten Spieler, Matches und Würfe aus der lokalen Datenbank und setzt die App auf Werkseinstellungen zurück.</p>
+              <button type="button" class="btn btn-danger" id="btn-clear-database" style="margin-top: 15px;">
+                Alle Daten unwiderruflich löschen
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Druck-Container für PDF Spielberichte -->
+  <div id="print-match-report"></div>
+
+  <!-- Modal: Einstellungen & Themes -->
+  <div class="app-modal" id="modal-settings">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">⚙️ Einstellungen & Design</h2>
+        <button class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Scoreboard Design & Themes</label>
+          <div class="theme-picker-group">
+            <button type="button" class="theme-btn active" data-theme="theme-pdc">
+              🌟 PDC Stage Neon
+            </button>
+            <button type="button" class="theme-btn" data-theme="theme-chalkboard">
+              🪵 Pub Kreidetafel
+            </button>
+            <button type="button" class="theme-btn" data-theme="theme-modern-dark">
+              🌑 Modern OLED Dark
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 20px;">
+          <label>Audio & Caller Feedback</label>
+          <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+              <input type="checkbox" id="setting-sound-fx" checked />
+              <span>Dartboard Soundeffekte (Board-Thuds, Double/Triple Klingeln)</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+              <input type="checkbox" id="setting-speech" checked />
+              <span>PDC Schiedsrichter Sprachausgabe (Caller Voice "180!", "Game Shot")</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary modal-close-btn">Fertig</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Match Winner Screen -->
+  <div class="app-modal" id="modal-winner">
+    <div class="modal-content" style="text-align: center; max-width: 480px;">
+      <div class="modal-header" style="justify-content: center;">
+        <h2 class="modal-title">🏆 GAME SHOT AND THE MATCH!</h2>
+      </div>
+      <div class="modal-body">
+        <div style="font-size: 4rem; margin: 10px 0;">🎯</div>
+        <h3 id="winner-player-name" style="font-size: 2rem; color: var(--accent-gold); margin-bottom: 12px;">Spieler</h3>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">hat das Match für sich entschieden!</p>
+
+        <div class="player-stats-mini" style="grid-template-columns: repeat(2, 1fr); gap: 10px;">
+          <div class="mini-stat">
+            <span class="label">3-Dart Average</span>
+            <span class="val" id="winner-avg">-</span>
+          </div>
+          <div class="mini-stat">
+            <span class="label">Bestes Leg</span>
+            <span class="val" id="winner-best-leg">-</span>
+          </div>
+          <div class="mini-stat">
+            <span class="label">Höchstes Finish</span>
+            <span class="val" id="winner-high-finish">-</span>
+          </div>
+          <div class="mini-stat">
+            <span class="label">180er</span>
+            <span class="val" id="winner-180s">0</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content: center;">
+        <button type="button" class="btn btn-primary" onclick="window.dartsApp.openModal('modal-setup')">Neues Spiel</button>
+        <button type="button" class="btn" onclick="window.dartsApp.openStatsModal()">Vollständige Stats</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 180 Fullscreen Celebration Overlay -->
+  <div class="overlay-180" id="overlay-180">
+    <div class="text-180">180!</div>
+    <div class="subtext-180">ONE HUNDRED AND EIGHTY!</div>
+  </div>
+
+  <!-- Toast Benachrichtigungen -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- JavaScript Initialisierung -->
+  <script type="module" src="js/ui/app.js"></script>
+</body>
+</html>
