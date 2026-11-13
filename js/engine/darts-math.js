@@ -225,6 +225,158 @@ export function parseSegment(segmentStr) {
 }
 
 /**
+ * Zerlegt eine Turn-Gesamtsumme (z. B. 100, 140, 180 oder beliebig)
+ * in realistische Einzeldarts für Statistik, Scorecard und Datenbank.
+ */
+export function decomposeSumToDarts(sumScore, dartsThrown = 3, isCheckout = false) {
+  const count = Math.max(1, Math.min(3, dartsThrown));
+  if (sumScore <= 0) {
+    return Array.from({ length: count }, () => ({
+      score: 0,
+      label: '0',
+      segment: 0,
+      multiplier: 0,
+      isDoubleAttempt: false
+    }));
+  }
+
+  if (isCheckout) {
+    const guide = CHECKOUT_GUIDE[sumScore];
+    if (guide && guide.length <= count) {
+      const padded = [];
+      const missesNeeded = count - guide.length;
+      for (let i = 0; i < missesNeeded; i++) {
+        padded.push({ score: 0, label: '0', segment: 0, multiplier: 0, isDoubleAttempt: false });
+      }
+      for (const seg of guide) {
+        const p = parseSegment(seg);
+        padded.push({
+          score: p.score,
+          label: p.label,
+          segment: p.value,
+          multiplier: p.multiplier,
+          isDoubleAttempt: p.isDouble,
+          isCheckout: p.isDouble
+        });
+      }
+      return padded;
+    }
+
+    // Fallback Checkout
+    let finish = Math.min(40, sumScore % 2 === 0 ? sumScore : (sumScore <= 40 ? sumScore : 40));
+    if (finish % 2 !== 0 && finish > 2) finish--;
+    const setup = sumScore - finish;
+    const darts = [];
+    if (count === 1) {
+      darts.push({
+        score: sumScore,
+        label: `D${Math.floor(sumScore / 2)}`,
+        segment: Math.floor(sumScore / 2),
+        multiplier: 2,
+        isDoubleAttempt: true,
+        isCheckout: true
+      });
+    } else if (count === 2) {
+      darts.push({ score: setup, label: `${setup}`, segment: setup, multiplier: 1, isDoubleAttempt: false });
+      darts.push({
+        score: finish,
+        label: `D${Math.floor(finish / 2)}`,
+        segment: Math.floor(finish / 2),
+        multiplier: 2,
+        isDoubleAttempt: true,
+        isCheckout: true
+      });
+    } else {
+      const s1 = Math.min(60, Math.ceil(setup / 2));
+      const s2 = setup - s1;
+      darts.push({ score: s1, label: `${s1}`, segment: s1, multiplier: 1, isDoubleAttempt: false });
+      darts.push({ score: s2, label: `${s2}`, segment: s2, multiplier: 1, isDoubleAttempt: false });
+      darts.push({
+        score: finish,
+        label: `D${Math.floor(finish / 2)}`,
+        segment: Math.floor(finish / 2),
+        multiplier: 2,
+        isDoubleAttempt: true,
+        isCheckout: true
+      });
+    }
+    return darts;
+  }
+
+  // Bekannte Darts-Standardaufnahmen bei 3 Darts
+  if (count === 3) {
+    const knownPresets = {
+      180: ['T20', 'T20', 'T20'],
+      177: ['T20', 'T20', 'T19'],
+      174: ['T20', 'T19', 'T19'],
+      171: ['T19', 'T19', 'T19'],
+      140: ['T20', 'T20', '20'],
+      100: ['T20', '20', '20'],
+      85: ['T20', '20', '5'],
+      60: ['20', '20', '20'],
+      45: ['15', '15', '15'],
+      41: ['20', '20', '1'],
+      26: ['20', '5', '1']
+    };
+    if (knownPresets[sumScore]) {
+      return knownPresets[sumScore].map(seg => {
+        const p = parseSegment(seg);
+        return {
+          score: p.score,
+          label: p.label,
+          segment: p.value,
+          multiplier: p.multiplier,
+          isDoubleAttempt: p.isDouble
+        };
+      });
+    }
+  }
+
+  // Realistische Zerlegung bei 3 Darts
+  if (count === 3) {
+    let d1, d2, d3;
+    if (sumScore > 120) {
+      d1 = 60;
+      d2 = 60;
+      d3 = sumScore - 120;
+    } else if (sumScore >= 80) {
+      d1 = 60;
+      const rest = sumScore - 60;
+      d2 = Math.ceil(rest / 2);
+      d3 = rest - d2;
+    } else {
+      const base = Math.floor(sumScore / 3);
+      const rem = sumScore % 3;
+      d1 = base + (rem > 0 ? 1 : 0);
+      d2 = base + (rem > 1 ? 1 : 0);
+      d3 = base;
+    }
+    return [d1, d2, d3].map(s => {
+      let label = `${s}`;
+      let mult = 1;
+      let seg = s;
+      if (s === 60) { label = 'T20'; mult = 3; seg = 20; }
+      else if (s === 57) { label = 'T19'; mult = 3; seg = 19; }
+      else if (s === 54) { label = 'T18'; mult = 3; seg = 18; }
+      else if (s === 50) { label = 'BULL'; mult = 2; seg = 25; }
+      return { score: s, label, segment: seg, multiplier: mult, isDoubleAttempt: mult === 2 };
+    });
+  }
+
+  // Für 1 oder 2 Darts
+  const base = Math.floor(sumScore / count);
+  const rem = sumScore % count;
+  return Array.from({ length: count }, (_, i) => {
+    const s = base + (i < rem ? 1 : 0);
+    let label = `${s}`;
+    let mult = 1;
+    let seg = s;
+    if (s === 60) { label = 'T20'; mult = 3; seg = 20; }
+    return { score: s, label, segment: seg, multiplier: mult, isDoubleAttempt: mult === 2 };
+  });
+}
+
+/**
  * Ermittelt den besten Checkout-Weg für die verbleibende Punktzahl und Darts.
  */
 export function getCheckoutRecommendation(remainingScore, dartsLeft = 3, outRule = 'DOUBLE') {

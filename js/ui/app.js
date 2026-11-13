@@ -481,32 +481,15 @@ class DartsApp {
     this.caller.ensureAudioResumed();
 
     const player = this.engine.getCurrentPlayer();
-    if (player) {
-      this.currentMatchDarts.push({
-        id: 'dart_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-        matchId: this.currentMatchId,
-        playerId: player.id,
-        turnIndex: player.stats?.turnsPlayed || 0,
-        dartIndex: 3,
-        segment: 0,
-        multiplier: 1,
-        score: score,
-        isDoubleAttempt: false,
-        isCheckout: false,
-        isBust: false,
-        coordX: null,
-        coordY: null,
-        inputMethod: 'sum',
-        mode: (this.engine.gameMode || 'X01').toLowerCase()
-      });
-    }
+    if (!player) return;
 
     if (this.engine.recordTurnSum) {
       const remaining = player.currentScore - score;
       if (remaining === 0) {
         this.promptCheckoutDarts(score);
       } else {
-        this.engine.recordTurnSum(score, 3, 0, false);
+        const simulated = this.engine.recordTurnSum(score, 3, 0, false);
+        this.syncMatchDartsFromTurn(player, simulated);
       }
     }
     const display = document.getElementById('sum-input-display');
@@ -515,12 +498,39 @@ class DartsApp {
   }
 
   promptCheckoutDarts(score) {
+    const player = this.engine.getCurrentPlayer();
+    if (!player) return;
     const darts = prompt(`Checkout ${score}! Mit wie vielen Darts beendet? (1, 2 oder 3):`, '3');
     const parsedDarts = parseInt(darts, 10);
     const validDarts = [1, 2, 3].includes(parsedDarts) ? parsedDarts : 3;
     if (this.engine.recordTurnSum) {
-      this.engine.recordTurnSum(score, validDarts, 1, true);
+      const simulated = this.engine.recordTurnSum(score, validDarts, 1, true);
+      this.syncMatchDartsFromTurn(player, simulated);
     }
+  }
+
+  syncMatchDartsFromTurn(player, simulatedDarts) {
+    if (!player || !Array.isArray(simulatedDarts)) return;
+    const currentTurnIdx = player.turnHistory ? player.turnHistory.length : 0;
+    simulatedDarts.forEach((d, idx) => {
+      this.currentMatchDarts.push({
+        id: 'dart_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 5),
+        matchId: this.currentMatchId,
+        playerId: player.id,
+        turnIndex: currentTurnIdx,
+        dartIndex: idx + 1,
+        segment: d.segment !== undefined ? d.segment : d.score,
+        multiplier: d.multiplier !== undefined ? d.multiplier : 1,
+        score: d.score,
+        isDoubleAttempt: !!d.isDoubleAttempt,
+        isCheckout: !!d.isCheckout,
+        isBust: !!d.isBust,
+        coordX: null,
+        coordY: null,
+        inputMethod: 'sum',
+        mode: (this.engine.gameMode || 'X01').toLowerCase()
+      });
+    });
   }
 
   updateUI() {

@@ -3,7 +3,7 @@
  * Verwaltet Spiellogik, Rundenwechsel, Bust-Regeln, Multi-Level Undo/Redo und Statistiken.
  */
 
-import { parseSegment } from './darts-math.js';
+import { parseSegment, decomposeSumToDarts } from './darts-math.js';
 
 export class GameEngine {
   constructor(config = {}) {
@@ -299,10 +299,8 @@ export class GameEngine {
       player.stats.doubleHits++;
     }
 
-    // Fake Darts für Statistik
-    const simulatedDarts = [
-      { score: Math.round(sumScore / dartsThrown), label: `${sumScore}` }
-    ];
+    // Erzeuge realistische Darts-Zerlegung für Statistik und Scorecard
+    const simulatedDarts = decomposeSumToDarts(sumScore, dartsThrown, isCheckout);
     this.currentTurnDarts = simulatedDarts;
 
     player.currentLegDarts += dartsThrown;
@@ -314,16 +312,16 @@ export class GameEngine {
       if (sumScore > player.stats.highestFinish) {
         player.stats.highestFinish = sumScore;
       }
-      this.finishTurn(player, false, true, sumScore, doubleAttempts);
+      this.finishTurn(player, false, true, sumScore, doubleAttempts, dartsThrown);
       this.handleLegWin(player);
-      return;
+      return simulatedDarts;
     }
 
     if (isBust) {
       if (this.onBust) this.onBust(player);
-      this.finishTurn(player, true, false, 0, doubleAttempts);
+      this.finishTurn(player, true, false, 0, doubleAttempts, dartsThrown);
       this.advanceTurn();
-      return;
+      return simulatedDarts;
     }
 
     player.currentScore = remaining;
@@ -333,11 +331,12 @@ export class GameEngine {
       player.stats.first9Score += sumScore;
     }
 
-    this.finishTurn(player, false, false, sumScore, doubleAttempts);
+    this.finishTurn(player, false, false, sumScore, doubleAttempts, dartsThrown);
     this.advanceTurn();
+    return simulatedDarts;
   }
 
-  finishTurn(player, bust, checkout, explicitSum = null, doubleAttempts = 0) {
+  finishTurn(player, bust, checkout, explicitSum = null, doubleAttempts = 0, explicitDartsThrown = null) {
     const turnSum = explicitSum !== null
       ? explicitSum
       : (bust ? 0 : this.currentTurnDarts.reduce((acc, d) => acc + d.score, 0));
@@ -360,6 +359,7 @@ export class GameEngine {
 
     const dAttempts = doubleAttempts || this.currentTurnDarts.filter(d => d.isDoubleAttempt).length;
     const turnDarts = [...this.currentTurnDarts];
+    const dartsCount = explicitDartsThrown !== null ? explicitDartsThrown : (turnDarts.length || 3);
 
     const turnRecord = {
       playerId: player.id,
@@ -368,6 +368,7 @@ export class GameEngine {
       legNumber: this.currentLeg,
       setNumber: this.currentSet,
       turnNumber: player.turnHistory.length + 1,
+      dartsThrown: dartsCount,
       darts: turnDarts,
       sum: turnSum,
       bust: !!bust,
@@ -420,7 +421,7 @@ export class GameEngine {
       turns: [...this.currentLegTurns],
       players: this.players.map(p => {
         const legTurns = this.currentLegTurns.filter(t => t.playerId === p.id);
-        const legDarts = legTurns.reduce((acc, t) => acc + (t.darts && t.darts.length > 0 ? t.darts.length : 3), 0);
+        const legDarts = legTurns.reduce((acc, t) => acc + (t.dartsThrown || (t.darts && t.darts.length > 0 ? t.darts.length : 3)), 0);
         const pStart = p.startScore || this.startScore;
         const legScore = (p.id === player.id) ? pStart : (pStart - p.currentScore);
 
@@ -594,7 +595,7 @@ export class GameEngine {
       turns: [...this.currentLegTurns],
       players: this.players.map(p => {
         const legTurns = this.currentLegTurns.filter(t => t.playerId === p.id);
-        const legDarts = p.currentLegDarts || legTurns.reduce((acc, t) => acc + (t.darts && t.darts.length > 0 ? t.darts.length : 3), 0);
+        const legDarts = p.currentLegDarts || legTurns.reduce((acc, t) => acc + (t.dartsThrown || (t.darts && t.darts.length > 0 ? t.darts.length : 3)), 0);
         const pStart = p.startScore || this.startScore;
         const legScore = pStart - p.currentScore;
 
